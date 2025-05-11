@@ -1,12 +1,11 @@
-
-import uuid
 import datetime
-from typing import Optional, Literal, Dict
-from pydantic import BaseModel, Field, ConfigDict
+from typing import Optional
+
+from pydantic import BaseModel, ConfigDict
 
 
 class RecordingsSummary(BaseModel):
-	model_config = ConfigDict(ser_json_timedelta='float')
+	model_config = ConfigDict(ser_json_timedelta="float")
 
 	number_of_recordings: int
 	sum_of_durations: Optional[datetime.timedelta]

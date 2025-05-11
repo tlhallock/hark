@@ -1,11 +1,7 @@
-import requests
-import subprocess
 import datetime
-from typing import Optional
-import schemas.searches as searches
-import schemas.recordings as schema
-import client
 
+import client
+import schemas.searches as searches
 
 
 def play_a_recording():
@@ -13,13 +9,15 @@ def play_a_recording():
 	print("=== All Recordings ===")
 	recs = client.list_recordings()
 	for rec in recs:
-		print(f"{rec['id']} | {rec['file_path']} | {rec['begin_date']} | {rec['audio_length']}")
+		print(
+			f"{rec['id']} | {rec['file_path']} | {rec['begin_date']} | {rec['audio_length']}"
+		)
 
 	if not recs:
 		print("No recordings found.")
 		return
 
-	first_id = recs[0]['id']
+	first_id = recs[0]["id"]
 	print("\n=== Details for first recording ===")
 	detail = client.get_recording(first_id)
 	for k, v in detail.items():
@@ -36,7 +34,7 @@ def play_a_recording():
 
 	# offset = input("Enter start offset in seconds (default 0): ") or 0
 	offset = 2
-	client.play_recording(sel['id'], int(offset))
+	client.play_recording(sel["id"], int(offset))
 
 
 def search_recordings():
@@ -46,7 +44,7 @@ def search_recordings():
 	search = client.create_search(duration, lower, upper)
 	print(f"Search created with ID: {search.uuid} and status: {search.search_status}")
 
-	while search.search_status != 'completed':
+	while search.search_status != "completed":
 		prompt = client.get_prompt(search)
 		print(f"Playing recording snippet at {prompt}")
 		if not prompt.play_request:
@@ -77,12 +75,11 @@ def search_recordings():
 			searches.SearchUpdate(
 				prompt=prompt,
 				result=result,
-			)
+			),
 		)
 	print("Search completed!")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 	print(client.get_statistics())
 	# search_recordings()
-

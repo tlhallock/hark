@@ -1,10 +1,9 @@
-
 import datetime
-from typing import Optional
-import schemas.searches as searches
+import random
+
 import client
 import schemas.recordings as schema
-import random
+import schemas.searches as searches
 
 
 def test_fake_search():
@@ -16,11 +15,10 @@ def test_fake_search():
 	assert statistics.last_recording_begin is not None
 	assert statistics.last_recording_begin > statistics.first_recording_begin
 
-	total_delta = (statistics.last_recording_begin - statistics.first_recording_begin)
-	random_seconds = datetime.timedelta(seconds=random.randint(
-		0,
-		int(total_delta.total_seconds()) - 1
-	))
+	total_delta = statistics.last_recording_begin - statistics.first_recording_begin
+	random_seconds = datetime.timedelta(
+		seconds=random.randint(0, int(total_delta.total_seconds()) - 1)
+	)
 	target_time = statistics.first_recording_begin + random_seconds
 
 	lower = statistics.first_recording_begin + datetime.timedelta(seconds=5)
@@ -29,7 +27,7 @@ def test_fake_search():
 	search = client.create_search(duration, lower, upper)
 
 	count = 0
-	while search.search_status != 'completed':
+	while search.search_status != "completed":
 		count += 1
 		assert count < 100
 
@@ -38,9 +36,11 @@ def test_fake_search():
 
 		print(f"\n\nTarget:\n\t     {target_time}")
 		print(f"Prompt:\n\t     {prompt.prompt_timestamp}")
-		print(f"Current bounds:\n\tmin: {prompt.current_lower_bound}\n\tmax: {prompt.current_upper_bound}")
+		print(
+			f"Current bounds:\n\tmin: {prompt.current_lower_bound}\n\tmax: {prompt.current_upper_bound}"
+		)
 		# play_recording(play_request=prompt.play_request)
-		
+
 		if target_time > prompt.prompt_timestamp + duration:
 			result = "after"
 		elif target_time < prompt.prompt_timestamp - duration:
@@ -53,6 +53,6 @@ def test_fake_search():
 			searches.SearchUpdate(
 				prompt=prompt,
 				result=result,
-			)
+			),
 		)
 	print("Search completed!")

@@ -1,0 +1,4 @@
+PYTHONPATH=src fastapi dev src/api.py
+
+black . && ruff check --fix && isort . && ruff format 
+ty check

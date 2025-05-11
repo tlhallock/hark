@@ -1,10 +1,9 @@
-
+import hashlib
+import os
+from dataclasses import dataclass, field
 
 import psycopg2
 import tqdm
-from dataclasses import dataclass, field
-import os
-import hashlib
 
 
 @dataclass
@@ -38,8 +37,7 @@ def calculate_checksums(directory, cur, result: ChecksumResult):
 		sha256sum = calculate_sha256(full_path)
 
 		cur.execute(
-			"UPDATE recording SET sha256sum = %s WHERE uuid = %s",
-			(sha256sum, uuid)
+			"UPDATE recording SET sha256sum = %s WHERE uuid = %s", (sha256sum, uuid)
 		)
 		if cur.rowcount < 1:
 			print(f"That is odd: {uuid} not found in database")
@@ -52,10 +50,10 @@ def main():
 	result = ChecksumResult(root_directory=root_directory)
 	with psycopg2.connect(
 		dbname="recordings",
-		user="postgres", 
+		user="postgres",
 		password="postgres",
-		host="localhost", 
-		port=5432
+		host="localhost",
+		port=5432,
 	) as conn:
 		conn.autocommit = True
 		with conn.cursor() as cur:

@@ -1,14 +1,13 @@
-
-
 import os
 import re
-from datetime import datetime, timedelta
-import psycopg2
-from mutagen.oggopus import OggOpus
-import tqdm
-from common import normalize_datetime
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 
+import psycopg2
+import tqdm
+from mutagen.oggopus import OggOpus
+
+from common import normalize_datetime
 
 pattern = re.compile(r"(\d{4}-\d{2}-\d{2})_(\d{2}-\d{2}-\d{2})\.opus")
 
@@ -47,7 +46,7 @@ def add_new_recording(directory, fname, cur, result: SynchronizationResult):
 		VALUES (%s, %s, %s, 'stationary')
 		ON CONFLICT (file_path) DO NOTHING;
 		""",
-		(fname, begin, audio_length)
+		(fname, begin, audio_length),
 	)
 	if cur.rowcount > 0:
 		result.num_inserted += 1
@@ -86,10 +85,10 @@ def main():
 	)
 	with psycopg2.connect(
 		dbname="recordings",
-		user="postgres", 
+		user="postgres",
 		password="postgres",
-		host="localhost", 
-		port=5432
+		host="localhost",
+		port=5432,
 	) as conn:
 		conn.autocommit = True
 		with conn.cursor() as cur:

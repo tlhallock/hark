@@ -1,11 +1,12 @@
 import os
 import re
 from datetime import datetime, timedelta
-import psycopg2
-from mutagen.oggopus import OggOpus
-import tqdm
-from common import normalize_datetime
 
+import psycopg2
+import tqdm
+from mutagen.oggopus import OggOpus
+
+from common import normalize_datetime
 
 pattern = re.compile(r"(\d{4}-\d{2}-\d{2})_(\d{2}-\d{2}-\d{2})\.opus")
 
@@ -34,7 +35,7 @@ def import_audio(directory, fname, cur):
 		VALUES (%s, %s, %s, 'stationary', NULL)
 		""",
 		# ON CONFLICT (file_path) DO NOTHING;
-		(fname, begin, audio_length)
+		(fname, begin, audio_length),
 	)
 
 
@@ -49,16 +50,13 @@ def import_audios(directory, conn):
 def main():
 	with psycopg2.connect(
 		dbname="recordings",
-		user="postgres", 
+		user="postgres",
 		password="postgres",
-		host="localhost", 
-		port=5432
+		host="localhost",
+		port=5432,
 	) as conn:
 		conn.autocommit = True
-		import_audios(
-			"/work/projects/tracker/mic/auto-sync",
-			conn
-		)
+		import_audios("/work/projects/tracker/mic/auto-sync", conn)
 
 
 if __name__ == "__main__":

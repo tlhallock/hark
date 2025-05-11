@@ -1,22 +1,17 @@
-
-from fastapi import FastAPI, HTTPException, Query, Response
-from fastapi.responses import StreamingResponse
-from typing import List, Optional
-from datetime import datetime
-import psycopg2
-import psycopg2.extras
+import asyncio
+import datetime
 import os
 import subprocess
-import asyncpg
-import asyncio
-import uuid
-import datetime
-import schemas.searches as searches
-from typing import Optional, Literal, Dict
-from starlette.requests import Request
-import schemas.recordings as schema
-import common
+from typing import Dict, List, Optional
 
+import asyncpg
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import StreamingResponse
+from starlette.requests import Request
+
+import common
+import schemas.recordings as schema
+import schemas.searches as searches
 
 app = FastAPI()
 
@@ -42,7 +37,7 @@ async def shutdown():
 @app.get("/recordings")
 async def list_recordings(
 	start: Optional[datetime.datetime] = Query(None),
-	end: Optional[datetime.datetime] = Query(None)
+	end: Optional[datetime.datetime] = Query(None),
 ):
 	query = "SELECT * FROM recording"
 	params = []
@@ -127,8 +122,10 @@ async def play_recording(
 		raise HTTPException(status_code=404, detail="Recording not a file")
 	if not os.access(path, os.R_OK):
 		raise HTTPException(status_code=403, detail="Permission denied")
-	
-	print(f"Playing recording for a total of {play_request.duration.total_seconds()}s\n\n\n\n\n\n\n\n")
+
+	print(
+		f"Playing recording for a total of {play_request.duration.total_seconds()}s\n\n\n\n\n\n\n\n"
+	)
 
 	ffmpeg_cmd = ["ffmpeg"]
 	if play_request.offset:
@@ -138,7 +135,7 @@ async def play_recording(
 		ffmpeg_cmd += ["-t", str(play_request.duration.total_seconds())]
 	ffmpeg_cmd += ["-f", "mp3", "-"]
 	proc = subprocess.Popen(ffmpeg_cmd, stdout=subprocess.PIPE)
-	
+
 	# cmd = ["ffmpeg", "-ss", str(offset), "-i", path, "-f", "mp3", "-"]
 	# proc = subprocess.Popen(ffmpeg_cmd, stdout=subprocess.PIPE)
 	# return StreamingResponse(proc.stdout, media_type="audio/mpeg")
@@ -165,11 +162,7 @@ async def play_recording(
 
 def _get_search_status(search: searches.Search) -> str:
 	# no need to sort, just get the max
-	latest_update = max(
-		search.updates,
-		key=lambda x: x.created_at,
-		default=None
-	)
+	latest_update = max(search.updates, key=lambda x: x.created_at, default=None)
 	if not latest_update:
 		return "active"
 	if latest_update.result == "exact":
@@ -182,7 +175,9 @@ async def create_search(
 	request: searches.CreateSearchRequest,
 ) -> searches.Search:
 	if request.lower and request.upper and request.lower >= request.upper:
-		raise HTTPException(status_code=400, detail="Lower bound must be less than upper bound")
+		raise HTTPException(
+			status_code=400, detail="Lower bound must be less than upper bound"
+		)
 	global searches_by_id
 	s = searches.Search(
 		target_duration=request.duration,
@@ -204,10 +199,11 @@ async def get_search(search_id: str) -> searches.Search:
 
 
 async def _get_lower_bound(search: searches.Search) -> datetime.datetime:
-	latest = max(filter(
-		lambda x: x.result == "after",
-		search.updates
-	), key=lambda x: x.prompt.prompt_timestamp, default=None)
+	latest = max(
+		filter(lambda x: x.result == "after", search.updates),
+		key=lambda x: x.prompt.prompt_timestamp,
+		default=None,
+	)
 	if latest:
 		return latest.prompt.prompt_timestamp
 
@@ -226,10 +222,11 @@ async def _get_lower_bound(search: searches.Search) -> datetime.datetime:
 
 
 async def _get_upper_bound(search: searches.Search) -> datetime.datetime:
-	earliest = min(filter(
-		lambda x: x.result == "before",
-		search.updates
-	), key=lambda x: x.prompt.prompt_timestamp, default=None)
+	earliest = min(
+		filter(lambda x: x.result == "before", search.updates),
+		key=lambda x: x.prompt.prompt_timestamp,
+		default=None,
+	)
 	if earliest:
 		return earliest.prompt.prompt_timestamp
 	if search.original_upper_bound:
@@ -246,7 +243,7 @@ async def _get_upper_bound(search: searches.Search) -> datetime.datetime:
 
 async def _get_play_request(
 	search: searches.Search,
-	prompt_timestamp: datetime.datetime, 
+	prompt_timestamp: datetime.datetime,
 ) -> Optional[searches.PlayRecordingRequest]:
 	prompt_timestamp = common.normalize_datetime(prompt_timestamp)
 
@@ -271,12 +268,15 @@ async def _get_play_request(
 	if not row["audio_length"]:
 		return None
 	if row["begin_date"] > prompt_timestamp:
-		raise HTTPException(status_code=500, detail="Recording begin date is after prompt timestamp")
+		raise HTTPException(
+			status_code=500, detail="Recording begin date is after prompt timestamp"
+		)
 	return searches.PlayRecordingRequest(
 		recording_id=row["uuid"],
 		offset=prompt_timestamp - row["begin_date"],
 		duration=None,
 	)
+
 
 @app.get("/search/{search_id}/prompt", response_model=searches.SearchPrompt)
 async def get_next_prompt(search_id: str) -> searches.SearchPrompt:
@@ -311,7 +311,7 @@ async def get_next_prompt(search_id: str) -> searches.SearchPrompt:
 
 @app.get("/search", response_model=List[searches.SearchListResult])
 async def list_searches(
-	status: Optional[str] = Query(None)
+	status: Optional[str] = Query(None),
 ) -> List[searches.SearchListResult]:
 	results = []
 	for s in searches_by_id.values():
@@ -320,10 +320,7 @@ async def list_searches(
 			continue
 		results.append(
 			searches.SearchListResult(
-				uuid=s.uuid,
-				status=s.status,
-				created_at=s.created_at,
-				updated=s.updated
+				uuid=s.uuid, status=s.status, created_at=s.created_at, updated=s.updated
 			)
 		)
 	return results
@@ -331,8 +328,7 @@ async def list_searches(
 
 @app.put("/search/{search_id}", response_model=searches.Search)
 async def update_search(
-	search_id: str,
-	prompt_result: searches.SearchUpdate
+	search_id: str, prompt_result: searches.SearchUpdate
 ) -> searches.Search:
 	s = searches_by_id.get(search_id, None)
 	if not s:
@@ -359,4 +355,3 @@ async def get_statistics() -> schema.RecordingsSummary:
 		raise HTTPException(status_code=404, detail="No recordings found")
 	print(dict(row))
 	return schema.RecordingsSummary.model_validate(dict(row))
-

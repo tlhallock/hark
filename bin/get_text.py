@@ -1,25 +1,28 @@
 # transcript_with_timestamps.py
 
 import datetime
-
-from typing import List
-begin_importing = datetime.datetime.now()
-
 import os
-import tqdm
-import torch
-from transformers import pipeline, AutoProcessor, AutoModelForSpeechSeq2Seq, WhisperProcessor
+
 # from transformers.models.whisper import WhisperTimeStampLogitsProcessor
 import subprocess
-from mutagen.oggopus import OggOpus
-import random
 from dataclasses import dataclass, field
+from typing import List
 
-end_importing = datetime.datetime.now()
-print(f"Importing took {end_importing - begin_importing} seconds")
+import torch
+import tqdm
+from mutagen.oggopus import OggOpus
+from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
+
+# begin_importing = datetime.datetime.now()
+
+
+# end_importing = datetime.datetime.now()
+# print(f"Importing took {end_importing - begin_importing} seconds")
 
 
 EXTENSIONS = {".opus"}
+AUDIO_DIR = "/work/projects/tracker/mic/auto-sync"
+MODEL_NAME = "openai/whisper-small"
 
 
 @dataclass
@@ -31,12 +34,14 @@ class TranscriptionJob:
 	#    e.g. “openai/whisper-small” or “openai/whisper-medium”
 	model_name: str = field(default="openai/whisper-small")
 	chunk_length: datetime.timedelta = field(default=datetime.timedelta(seconds=30))
-	stride_length_begin: datetime.timedelta = field(default=datetime.timedelta(seconds=6))
+	stride_length_begin: datetime.timedelta = field(
+		default=datetime.timedelta(seconds=6)
+	)
 	stride_length_end: datetime.timedelta = field(default=datetime.timedelta(seconds=0))
 	batch_size: int = field(default=1)
 
 
-# 
+#
 def create_asr():
 	processor = AutoProcessor.from_pretrained(MODEL_NAME)
 	# It gave a warning: Also make sure WhisperTimeStampLogitsProcessor was used during generation.
@@ -54,20 +59,15 @@ def create_asr():
 	asr = pipeline(
 		task="automatic-speech-recognition",
 		model=model,
-
 		tokenizer=processor.tokenizer,
 		feature_extractor=processor.feature_extractor,
-		
 		# options: “char”, “word”, or “none”
 		# return_timestamps="word",
-
-
 		# split long files
 		# chunk_length_s=chunk_length_s,
 		# overlap 5s at start/end of each chunk
 		# stride_length_s=(5, 5),
 		device=0 if torch.cuda.is_available() else -1,
-
 		# batch_size=1,
 		# generate_kwargs={
 		# 	# "logits_processors": [ts_processor],
@@ -76,6 +76,7 @@ def create_asr():
 		# 	# language="en"
 		# }
 	)
+
 	def ret(*args, **kwargs):
 		return asr(
 			*args,
@@ -85,6 +86,7 @@ def create_asr():
 			chunk_length_s=chunk_length_s,
 			batch_size=1,
 		)
+
 	return ret
 
 
@@ -126,20 +128,24 @@ def to_wav16k_split(src: str, destination: str) -> List[str]:
 	out_pattern = os.path.join(destination, f"{base_name}.%05d.wav16k.wav")
 	segment_duration = datetime.timedelta(minutes=5)
 	cmd = [
-		"ffmpeg", "-y",
-		"-i", str(src),
-		"-ar", "16000",
-		"-ac", "1",
-		"-f", "segment",
-		"-segment_time", str(segment_duration.total_seconds()),
-		"-c", "pcm_s16le",
-		str(out_pattern)
+		"ffmpeg",
+		"-y",
+		"-i",
+		str(src),
+		"-ar",
+		"16000",
+		"-ac",
+		"1",
+		"-f",
+		"segment",
+		"-segment_time",
+		str(segment_duration.total_seconds()),
+		"-c",
+		"pcm_s16le",
+		str(out_pattern),
 	]
 	subprocess.run(
-		cmd,
-		check=True,
-		stdout=subprocess.DEVNULL,
-		stderr=subprocess.DEVNULL
+		cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
 	)
 	return list_chunks(destination, base_name)
 

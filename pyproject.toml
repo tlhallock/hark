@@ -12,10 +12,12 @@ dependencies = [
     "asyncpg>=0.30.0",
     "requests>=2.32.3",
     "pydantic>=2.11.4",
-    "ipd",
     "torch",
     "transformers",
     "pytest",
+    "ruff>=0.11.9",
+    "isort>=6.0.1",
+    "ty>=0.0.0a8",
 ]
 
 [build-system]
@@ -24,4 +26,10 @@ build-backend = "hatchling.build"
 
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/recording_service"]
+packages = ["src"]
+
+
+# ruff
+
+[tool.ruff.format]
+indent-style = "tab"

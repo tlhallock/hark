@@ -1,12 +1,12 @@
-
-import uuid
 import datetime
-from typing import Optional, Literal, Dict
-from pydantic import BaseModel, Field, ConfigDict
+import uuid
+from typing import Literal, Optional
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class PlayRecordingRequest(BaseModel):
-	model_config = ConfigDict(ser_json_timedelta='float')
+	model_config = ConfigDict(ser_json_timedelta="float")
 
 	recording_id: uuid.UUID
 	offset: Optional[datetime.timedelta] = None
@@ -49,9 +49,8 @@ class Search(BaseModel):
 
 
 class CreateSearchRequest(BaseModel):
-	model_config = ConfigDict(ser_json_timedelta='float')
-	
+	model_config = ConfigDict(ser_json_timedelta="float")
+
 	duration: Optional[datetime.timedelta] = None
 	lower: Optional[datetime.datetime] = None
 	upper: Optional[datetime.datetime] = None
-

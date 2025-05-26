@@ -1,0 +1,14 @@
+# /etc/systemd/system/audiologger.service
+
+[Unit]
+Description=Continuous Audio Logger
+After=network.target sound.target
+
+[Service]
+ExecStart=/home/thallock/bin/record.sh
+Restart=always
+RestartSec=5
+User=thallock
+
+[Install]
+WantedBy=multi-user.target

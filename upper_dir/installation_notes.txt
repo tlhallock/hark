@@ -1,0 +1,59 @@
+
+
+sudo systemctl restart audiologger
+
+
+sudo systemctl daemon-reexec
+sudo systemctl enable audiologger
+sudo systemctl start audiologger
+sudo systemctl restart audiologger
+sudo systemctl status audiologger
+sudo systemctl daemon-reload
+
+sudo systemctl stop audiologger
+
+crontab -e
+*/10 * * * * /home/thallock/bin/sync.sh >> /home/thallock/logs/sync.log 2>&1
+
+
+thallock@pi:~ $ cat /etc/systemd/system/audiologger.service
+[Unit]
+Description=Continuous Audio Logger
+After=network.target sound.target
+
+[Service]
+ExecStart=/home/thallock/bin/record.sh
+Restart=always
+RestartSec=5
+User=thallock
+
+[Install]
+WantedBy=multi-user.target
+
+
+https://chatgpt.com/c/67f2ddd9-352c-8008-ad7a-18ac1dba4e0e
+
+
+
+
+
+ffmpeg -f alsa -ac 1 -i hw:2 \
+  -c:a libopus \
+  -f segment \
+  -segment_time 5 \
+  -strftime 1 \
+  -reset_timestamps 1 \
+  testing_%Y-%m-%d_%H-%M-%S.opus
+
+
+7200
+
+#!/bin/bash
+
+mkdir -p ~/recordings
+ffmpeg -f alsa -ac 1 -i hw:2 \
+  -c:a libopus \
+  -f segment \
+  -segment_time 5 \
+  -reset_timestamps 1 \
+  testing-%Y-%m-%d_%H-%M-%S.opus

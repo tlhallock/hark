@@ -82,7 +82,9 @@ def create_asr():
 			*args,
 			**kwargs,
 			return_timestamps=True,
-			stride_length_s=(6, 0),
+			# stride_length_s=(6, 0),
+			# stride_length_s=(5, 5),
+			stride_length_s=(10, 0),
 			chunk_length_s=chunk_length_s,
 			batch_size=1,
 		)
@@ -167,19 +169,13 @@ def print_file(asr, path: str):
 		print(f"[{start:06.2f}s → {end:06.2f}s]  {text}")
 
 
-def test():
-	for path in tqdm.tqdm(sorted(AUDIO_DIR.iterdir())):
-		print_file(asr, path)
-
-
-if __name__ == "__main__":
-	# random.seed(1776)
+def logit():
 	test_file = "/work/projects/tracker/mic/auto-sync/2025-04-13_03-06-44.opus"
 	destination = "./outputs/wavs/"
 
-	audio = OggOpus(test_file)
-	audio_length = datetime.timedelta(seconds=audio.info.length)
-	print(f"Audio length: {audio_length}")
+	# audio = OggOpus(test_file)
+	# audio_length = datetime.timedelta(seconds=audio.info.length)
+	# print(f"Audio length: {audio_length}")
 
 	base_name = os.path.basename(test_file)
 	wav16s = list_chunks(destination, base_name)
@@ -196,21 +192,37 @@ if __name__ == "__main__":
 	# chunk_index = 0
 	# wav16 = wav16s[chunk_index]
 	# print(f"Found {num_chunks}, choosing index: {chunk_index}")
-	wav16 = "./outputs/wavs/2025-04-13_03-06-44.opus.00020.wav16k.wav"
 
+	# wav16 = "./outputs/wavs/2025-04-13_03-06-44.opus.00020.wav16k.wav"
 	asr = create_asr()
-	bigin_time = datetime.datetime.now()
-	result = asr(wav16)
-	end_time = datetime.datetime.now()
-	print(f"ASR took {end_time - bigin_time} seconds")
+	wav16s = ["./outputs/wavs/2025-04-13_03-06-44.opus.00020.wav16k.wav"]
 
-	for chunk in result.get("chunks", []):
-		start, end = chunk["timestamp"]
-		text = chunk["text"].strip()
-		if not text:
-			continue
-		if not end:
-			end = -1
-		if not start:
-			start = -1
-		print(f"[{start:06.2f}s -> {end:06.2f}s] {text}")
+	for wav16 in tqdm.tqdm(wav16s):
+		bigin_time = datetime.datetime.now()
+		result = asr(wav16)
+		end_time = datetime.datetime.now()
+		print(f"ASR took {end_time - bigin_time} seconds")
+
+
+		output_file = wav16 + ".txt"
+		attempt = 0
+		while os.path.exists(output_file):
+			output_file = f"{wav16}.{attempt:05d}.txt"
+			attempt += 1
+
+		print(f"Writing to {output_file}")
+		with open(output_file, "a") as f:
+			for chunk in result.get("chunks", []):
+				start, end = chunk["timestamp"]
+				text = chunk["text"].strip()
+				if not text:
+					continue
+				if not end:
+					end = -1
+				if not start:
+					start = -1
+				f.write(f"{start:06.2f} {end:06.2f} {text}\n")
+
+
+if __name__ == "__main__":
+	logit()

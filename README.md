@@ -7,7 +7,6 @@ need to break the schema off from the db model
 
 
 import text from audio
-implement checksums
 
 
 

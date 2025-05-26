@@ -1,0 +1,52 @@
+import soundfile as sf
+import numpy as np
+import matplotlib.pyplot as plt
+import sys
+
+
+def load_audio(path):
+	data, samplerate = sf.read(path)
+	if data.ndim > 1:
+		# Convert to mono by averaging channels
+		data = data.mean(axis=1)
+	return data, samplerate
+
+
+def analyze_changes(data, samplerate, window_sec=1.0):
+	samples_per_window = int(window_sec * samplerate)
+	rms_values = []
+
+	for start in range(0, len(data), samples_per_window):
+		chunk = data[start:start + samples_per_window]
+		if len(chunk) == 0:
+			continue
+		rms = np.sqrt(np.mean(chunk**2))
+		rms_values.append(rms)
+
+	# Calculate difference between successive RMS values
+	changes = np.abs(np.diff(rms_values))
+	return changes, np.arange(1, len(rms_values)) * window_sec
+
+
+def plot_changes(changes, times, threshold=None):
+	plt.figure(figsize=(12, 6))
+	plt.plot(times, changes, label="RMS Change")
+	if threshold is not None:
+		plt.axhline(threshold, color='red', linestyle='--', label="Threshold")
+	plt.title("RMS Change Between Successive 1s Windows")
+	plt.xlabel("Time (s)")
+	plt.ylabel("RMS Change")
+	plt.grid(True)
+	plt.legend()
+	plt.tight_layout()
+	plt.show()
+
+if __name__ == "__main__":
+	if len(sys.argv) != 2:
+		print("Usage: python analyze_opus.py path_to_file.opus")
+		sys.exit(1)
+
+	path = sys.argv[1]
+	data, sr = load_audio(path)
+	changes, times = analyze_changes(data, sr)
+	plot_changes(changes, times)

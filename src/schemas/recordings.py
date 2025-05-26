@@ -11,4 +11,6 @@ class RecordingsSummary(BaseModel):
 	sum_of_durations: Optional[datetime.timedelta]
 	first_recording_begin: Optional[datetime.datetime]
 	last_recording_begin: Optional[datetime.datetime]
+	total_disk_usage: Optional[int]
+
 	# could have the last recording end date

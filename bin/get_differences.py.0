@@ -1,0 +1,43 @@
+from pydub import AudioSegment
+import numpy as np
+import matplotlib.pyplot as plt
+import sys
+import os
+
+
+def rms(audio_chunk):
+	"""Calculate the Root Mean Square of an audio chunk."""
+	samples = np.array(audio_chunk.get_array_of_samples())
+	return np.sqrt(np.mean(samples.astype(float)**2))
+
+def analyze_opus(filepath, window_ms=1000):
+	audio = AudioSegment.from_file(filepath, format="opus")
+	duration_ms = len(audio)
+
+	rms_values = []
+	change_values = []
+
+	for start in range(0, duration_ms, window_ms):
+		chunk = audio[start:start + window_ms]
+		rms_values.append(rms(chunk))
+
+	for i in range(1, len(rms_values)):
+		change = abs(rms_values[i] - rms_values[i - 1])
+		change_values.append(change)
+
+	# Time axis for plotting
+	times = np.arange(1, len(rms_values)) * (window_ms / 1000.0)
+
+	plt.figure(figsize=(12, 6))
+	plt.plot(times, change_values)
+	plt.title("RMS Change Between Adjacent 1s Chunks")
+	plt.xlabel("Time (s)")
+	plt.ylabel("RMS Change")
+	plt.grid(True)
+	plt.show()
+
+if __name__ == "__main__":
+	if len(sys.argv) != 2:
+		print("Usage: python analyze_opus.py path_to_file.opus")
+	else:
+		analyze_opus(sys.argv[1])

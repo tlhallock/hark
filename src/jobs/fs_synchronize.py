@@ -8,8 +8,10 @@ import tqdm
 from mutagen.oggopus import OggOpus
 
 from common import normalize_datetime
+from jobs.utils import connect_to_db
 
 pattern = re.compile(r"(\d{4}-\d{2}-\d{2})_(\d{2}-\d{2}-\d{2})\.opus")
+
 
 
 @dataclass
@@ -23,7 +25,7 @@ class SynchronizationResult:
 	# num_updated: int
 
 
-def add_new_recording(directory, fname, cur, result: SynchronizationResult):
+def add_new_recording(directory, fname, result: SynchronizationResult):
 	match = pattern.match(fname)
 	if not match:
 		return
@@ -35,37 +37,42 @@ def add_new_recording(directory, fname, cur, result: SynchronizationResult):
 	path = os.path.join(directory, fname)
 	audio = OggOpus(path)
 	audio_length = timedelta(seconds=audio.info.length)
-	cur.execute(
-		"""
-		INSERT INTO recording (
-			file_path,
-			begin_date,
-			audio_length,
-			source
+	disk_usage = os.path.getsize(path)
+
+	with connect_to_db() as cur:
+		cur.execute(
+			"""
+			INSERT INTO recording (
+				file_path,
+				begin_date,
+				audio_length,
+				source,
+				disk_usage
+			)
+			VALUES (%s, %s, %s, 'stationary', %s)
+			ON CONFLICT (file_path) DO NOTHING;
+			""",
+			(fname, begin, audio_length, disk_usage),
 		)
-		VALUES (%s, %s, %s, 'stationary')
-		ON CONFLICT (file_path) DO NOTHING;
-		""",
-		(fname, begin, audio_length),
-	)
 	if cur.rowcount > 0:
 		result.num_inserted += 1
 	else:
 		result.num_unchanged += 1
 
 
-def add_new_recordings(directory, cur, result: SynchronizationResult):
+def add_new_recordings(directory, result: SynchronizationResult):
 	files = os.listdir(directory)
 	files = sorted(files)
 	print(f"Checking {len(files)} files")
 	for fname in tqdm.tqdm(files):
-		add_new_recording(directory, fname, cur, result)
+		add_new_recording(directory, fname, result)
 
 
-def remove_missing_recordings(directory, cur, result: SynchronizationResult):
-	cur.execute("SELECT uuid, file_path FROM recording")
-	# WHERE source = 'stationary'
-	rows = cur.fetchall()
+def remove_missing_recordings(directory, result: SynchronizationResult):
+	with connect_to_db() as cur:
+		cur.execute("SELECT uuid, file_path FROM recording")
+		# WHERE source = 'stationary'
+		rows = cur.fetchall()
 	print(f"Checking {len(rows)} existing recordings")
 	for row in tqdm.tqdm(rows):
 		# row = dict(row)
@@ -73,7 +80,8 @@ def remove_missing_recordings(directory, cur, result: SynchronizationResult):
 		full_path = os.path.join(directory, file_path)
 		if os.path.exists(full_path):
 			continue
-		cur.execute("DELETE FROM recording WHERE uuid = %s", (uuid,))
+		with connect_to_db() as cur:
+			cur.execute("DELETE FROM recording WHERE uuid = %s", (uuid,))
 		result.num_removed += 1
 
 
@@ -83,25 +91,14 @@ def main():
 		root_directory=root_directory,
 		# source="stationary",
 	)
-	with psycopg2.connect(
-		dbname="recordings",
-		user="postgres",
-		password="postgres",
-		host="localhost",
-		port=5432,
-	) as conn:
-		conn.autocommit = True
-		with conn.cursor() as cur:
-			remove_missing_recordings(
-				root_directory,
-				cur,
-				result,
-			)
-			add_new_recordings(
-				root_directory,
-				cur,
-				result,
-			)
+	remove_missing_recordings(
+		root_directory,
+		result,
+	)
+	add_new_recordings(
+		root_directory,
+		result,
+	)
 	print(f"result: {result}")
 
 

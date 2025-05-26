@@ -344,6 +344,7 @@ async def get_statistics() -> schema.RecordingsSummary:
 	query = """
 		SELECT
 			count(*) as number_of_recordings,
+			sum(disk_usage) as total_disk_usage,
 			sum(audio_length) as sum_of_durations,
 			min(begin_date) as first_recording_begin,
 			max(begin_date) as last_recording_begin
